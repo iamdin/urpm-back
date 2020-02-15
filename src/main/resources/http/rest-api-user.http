@@ -1,0 +1,85 @@
+###
+POST http://{{host}}:{{port}}/user/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account": "root",
+  "password": "root"
+}
+> {%
+ token = response.body.data.token;
+ client.global.set("Authorization",token);
+%}
+
+###
+GET http://{{host}}:{{port}}/user/info
+Content-Type: application/json;charset=utf-8
+Accept: application/json
+Authorization: {{Authorization}}
+
+> {%
+ token = response.headers.valueOf("Authorization");
+ client.global.set("Authorization",token);
+%}
+
+###
+GET http://{{host}}:{{port}}/user/all?pageNum=1&pageSize=10
+Content-Type: application/json;charset=utf-8
+Accept: application/json
+Authorization: {{Authorization}}
+
+> {%
+ token = response.headers.valueOf("Authorization");
+ client.global.set("Authorization",token);
+%}
+###
+GET http://{{host}}:{{port}}/user/1
+Content-Type: application/json;charset=utf-8
+Accept: application/json
+Authorization: {{Authorization}}
+
+> {%
+ token = response.headers.valueOf("Authorization");
+ client.global.set("Authorization",token);
+%}
+###
+POST http://{{host}}:{{port}}/user
+Content-Type: application/json
+Accept: application/json
+Authorization: {{Authorization}}
+
+{
+  "account": "guest",
+  "username": "guest",
+  "password": "guest"
+}
+> {%
+ token = response.headers.valueOf("Authorization");
+ client.global.set("Authorization",token);
+%}
+
+###
+PUT http://{{host}}:{{port}}/user/
+Content-Type: application/json
+Accept: application/json
+Authorization: {{Authorization}}
+
+{
+  "id": 39,
+  "username": "update"
+}
+> {%
+ token = response.headers.valueOf("Authorization");
+ client.global.set("Authorization",token);
+%}
+###
+DELETE http://{{host}}:{{port}}/user/38
+Authorization: {{Authorization}}
+
+> {%
+ token = response.headers.valueOf("Authorization");
+ client.global.set("Authorization",token);
+%}
+
+###
