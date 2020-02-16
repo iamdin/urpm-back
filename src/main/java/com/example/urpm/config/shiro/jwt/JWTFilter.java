@@ -45,11 +45,11 @@ public class JWTFilter extends BasicHttpAuthenticationFilter {
         String httpMethod = httpServletRequest.getMethod();
         String httpURI = httpServletRequest.getRequestURI();
         String httpHeaderAuthorization = httpServletRequest.getHeader("Authorization");
-        log.debug("==> request ：{} | method ：{} | Authorization:{}", httpURI, httpMethod, httpHeaderAuthorization);
+        log.debug("==> request : {} | method : {} | Authorization:{}", httpURI, httpMethod, httpHeaderAuthorization);
         // 查看当前Header中是否携带Authorization属性(Token)，有 -> 进行登录认证授权 ,没有 -> 401
         if (!this.isLoginAttempt(request, response)) {
             // 没有携带Token
-            log.debug("==> request：{} | method {}, Authorization is null", httpURI, httpMethod);
+            log.debug("==> request: {} | method {}, Authorization is null", httpURI, httpMethod);
             this.response401(response, "Token为空，请先登录 ");
             return false;
         }
@@ -66,7 +66,7 @@ public class JWTFilter extends BasicHttpAuthenticationFilter {
             }
         } catch (Exception e) {
             // 认证出现异常，传递错误信息msg
-            log.debug("==> userRealm doGetAuthenticationInfo failed Exception ：{}", e.getMessage());
+            log.debug("==> userRealm doGetAuthenticationInfo failed Exception : {}", e.getMessage());
         }
         return true;
     }
@@ -131,7 +131,9 @@ public class JWTFilter extends BasicHttpAuthenticationFilter {
         String token = this.getAuthzHeader(request);
         // 获取当前Token的帐号信息
         String account = JWTUtil.getClaim(token, Constant.ACCOUNT);
-        log.debug("==> refreshToken Account: {}", account);
+        String timestamp = JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS);
+        log.debug("==> refreshToken Account: {}, Timestamp :{}", account, timestamp);
+        log.debug("Timestamp equals jwt : {}, redis : {}", JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS), JedisUtil.get(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account));
         // 判断Redis中RefreshToken是否存在
         if (!JedisUtil.exists(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account)) {
             return false;
@@ -139,7 +141,7 @@ public class JWTFilter extends BasicHttpAuthenticationFilter {
         String redisTimestamp = JedisUtil.get(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account);
         String jwtTimestamp = JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS);
         // 获取当前AccessToken中的时间戳，与RefreshToken的时间戳对比，如果当前时间戳一致，进行AccessToken刷新
-        log.debug("Timestamp equals jwt ：{},reids ：{}", jwtTimestamp, redisTimestamp);
+        log.debug("Timestamp equals jwt : {}, redis : {}", jwtTimestamp, redisTimestamp);
         if (!jwtTimestamp.equals(redisTimestamp)) {
             return false;
         }
@@ -147,17 +149,17 @@ public class JWTFilter extends BasicHttpAuthenticationFilter {
         String currentTimeMillis = String.valueOf(System.currentTimeMillis());
         // 读取配置文件，获取refreshTokenExpireTime属性
         int refreshTokenExpireTime = ConfigProperties.refreshTokenExpireTime;
+        String refreshed_token = JWTUtil.sign(account, currentTimeMillis);
+        // 刷新AccessToken，设置时间戳为当前最新时间戳,将新刷新的AccessToken再次进行Shiro的登录
+        JWTToken jwtToken = new JWTToken(refreshed_token);
         // 设置RefreshToken中的时间戳为当前最新时间戳，且刷新过期时间重新为30分钟过期(配置文件可配置refreshTokenExpireTime属性)
         JedisUtil.set(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account, currentTimeMillis, refreshTokenExpireTime);
-        // 刷新AccessToken，设置时间戳为当前最新时间戳
-        token = JWTUtil.sign(account, currentTimeMillis);
-        // 将新刷新的AccessToken再次进行Shiro的登录
-        JWTToken jwtToken = new JWTToken(token);
         // 提交给UserRealm进行认证，如果错误他会抛出异常并被捕获，如果没有抛出异常则代表登入成功，返回true
+        log.debug("refreshToken over , --> userRealm again  ");
         this.getSubject(request, response).login(jwtToken);
         // 最后将刷新的AccessToken存放在Response的Header中的Authorization字段返回
         HttpServletResponse httpServletResponse = WebUtils.toHttp(response);
-        httpServletResponse.setHeader("Authorization", token);
+        httpServletResponse.setHeader("Authorization", refreshed_token);
         httpServletResponse.setHeader("Access-Control-Expose-Headers", "Authorization");
         return true;
     }

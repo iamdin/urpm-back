@@ -48,7 +48,6 @@ public class UserRealm extends AuthorizingRealm {
         this.roleMapper = roleMapper;
     }
 
-
     @Override
     public boolean supports(AuthenticationToken authenticationToken) {
         return authenticationToken instanceof JWTToken;
@@ -58,24 +57,24 @@ public class UserRealm extends AuthorizingRealm {
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
         SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
         String account = principalCollection.toString();
-        log.debug("==> UserRealm doGetAuthorizationInfo Start：{} ", account);
+        log.debug("==> UserRealm doGetAuthorizationInfo Start: {} ", account);
         // 查询用户角色
-        List<RoleDto> roleDtos = roleMapper.selectRoleByUserAccount(account);
-        roleDtos.forEach(roleDto -> {
-            if (roleDto != null) {
+        List<RoleDto> roles = roleMapper.selectRoleByUserAccount(account);
+        roles.forEach(role -> {
+            if (role != null) {
                 // 添加角色
-                simpleAuthorizationInfo.addRole(roleDto.getName());
+                simpleAuthorizationInfo.addRole(role.getName());
                 // 根据用户角色查询权限
-                List<PermissionDto> permissionDtos = permissionMapper.selectPermissionByRoleId(roleDto.getId());
-                permissionDtos.forEach(permissionDto -> {
-                    if (permissionDto != null) {
+                List<PermissionDto> permissions = permissionMapper.selectPermissionByRoleId(role.getId());
+                permissions.forEach(permission -> {
+                    if (permission != null) {
                         // 添加权限
-                        simpleAuthorizationInfo.addStringPermission(permissionDto.getPerCode());
+                        simpleAuthorizationInfo.addStringPermission(permission.getPerCode());
                     }
                 });
             }
         });
-        log.debug("==> UserRealm doGetAuthorizationInfo End ：{} ", account);
+        log.debug("==> UserRealm doGetAuthorizationInfo End : {} ", account);
         return simpleAuthorizationInfo;
     }
 
@@ -92,14 +91,14 @@ public class UserRealm extends AuthorizingRealm {
         } catch (JWTDecodeException e) {
             throw new AuthenticationException("Token 有误 ！");
         }
-        log.debug("==> UserRealm doGetAuthenticationInfo，JWT decode Account : {}", account);
+        log.debug("==> UserRealm doGetAuthenticationInfo, JWT decode Account : {},Timestamp :{}", account, JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS));
         // 开始认证，要AccessToken认证通过，且Redis中存在RefreshToken，且两个Token时间戳一致
         if (JWTUtil.verify(token) && JedisUtil.exists(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account)) {
             // 获取RefreshToken的时间戳
             String redisTimestamp = JedisUtil.get(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account);
             String jwtTimestamp = JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS);
             // 双重认证： Jwt时间戳  与  Redis refresh_token时间戳对比
-            log.debug("==> Timestamp equals Jwt: {} | redis ：{}", jwtTimestamp, redisTimestamp);
+            log.debug("==> Timestamp equals Jwt: {} | redis :{}", jwtTimestamp, redisTimestamp);
             if (jwtTimestamp.equals(redisTimestamp)) {
                 return new SimpleAuthenticationInfo(account, token, "userRealm");
             }

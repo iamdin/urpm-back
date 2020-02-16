@@ -86,7 +86,7 @@ public class JWTUtil {
             return jwt.getClaim(claim).asString();
         } catch (JWTDecodeException e) {
             log.error("Token getClaim Exception :{}", e.getMessage());
-            throw new JWTDecodeException("Token有误！" + e.getMessage());
+            throw new JwtTokenException("Token有误！" + e.getMessage());
         }
     }
 }

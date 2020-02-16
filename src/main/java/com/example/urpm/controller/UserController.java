@@ -98,8 +98,6 @@ public class UserController {
     public RestResult<PageInfo<UserDto>> getAllUser(
             @RequestParam @NotBlank(message = "pageNum不能为空") int pageNum,
             @RequestParam @NotBlank(message = "pageSize不能为空") int pageSize) {
-        System.out.println(pageNum);
-        System.out.println(pageSize);
         PageHelper.startPage(pageNum, pageSize);
         List<UserDto> list = userService.selectAll();
         PageInfo<UserDto> pageInfo = new PageInfo<>(list);

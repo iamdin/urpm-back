@@ -60,8 +60,6 @@ public class PermissionController {
     public RestResult<PageInfo<PermissionDto>> getAllPermission(
             @RequestParam @NotBlank(message = "pageNum不能为空") int pageNum,
             @RequestParam @NotBlank(message = "pageSize不能为空") int pageSize) {
-        System.out.println(pageNum);
-        System.out.println(pageSize);
         PageHelper.startPage(pageNum, pageSize);
         List<PermissionDto> list = permissionService.selectAll();
         PageInfo<PermissionDto> pageInfo = new PageInfo<>(list);
