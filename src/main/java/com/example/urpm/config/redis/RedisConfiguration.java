@@ -2,6 +2,7 @@ package com.example.urpm.config.redis;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +36,7 @@ public class RedisConfiguration {
             int timeout = (int) properties.getTimeout().toMillis();
             String password = properties.getPassword();
             JedisPool jedisPool = new JedisPool(jedisPoolConfig, host, port, timeout, password);
+            log.debug(" ==> Jedis Config host:{},password:{}", host, password);
             log.debug(" <====  Initialize JedisPool Success !");
             return jedisPool;
         } catch (Exception e) {

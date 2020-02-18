@@ -3,8 +3,8 @@ server:
 
 spring:
   datasource:
-    name: ShiroJwt
-    url: jdbc:mysql://webplus.top:3306/shirojwt?useSSL=false&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&serverTimezone=CTT
+    name: urpm
+    url: jdbc:mysql://47.111.233.76:3306/urpm?useSSL=false&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&serverTimezone=CTT
     username: root
     password: 123456
     # 使用Druid数据源
@@ -61,14 +61,15 @@ spring:
       filter:
         stat:
           log-slow-sql: true
+
   redis:
-    host: webplus.top
+    host: 47.111.233.76
     port: 6379
     timeout: 10000
     jedis:
       pool:
         max-active: 50
-        max-idle: 5
+        max-idle: 8
         min-idle: 0
         max-wait: 10000
 
