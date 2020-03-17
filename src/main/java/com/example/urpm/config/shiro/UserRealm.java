@@ -8,10 +8,6 @@ import com.example.urpm.mapper.RoleMapper;
 import com.example.urpm.model.common.Constant;
 import com.example.urpm.model.dto.PermissionDto;
 import com.example.urpm.model.dto.RoleDto;
-import com.example.urpm.model.entity.Permission;
-import com.example.urpm.service.PermissionService;
-import com.example.urpm.service.RoleService;
-import com.example.urpm.service.UserService;
 import com.example.urpm.util.JWTUtil;
 import com.example.urpm.util.JedisUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -24,10 +20,8 @@ import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.util.List;
 
 /**
@@ -41,11 +35,13 @@ public class UserRealm extends AuthorizingRealm {
 
     private final PermissionMapper permissionMapper;
     private final RoleMapper roleMapper;
+    private final JedisUtil jedisUtil;
 
     @Autowired
-    public UserRealm(PermissionMapper permissionMapper, RoleMapper roleMapper) {
+    public UserRealm(PermissionMapper permissionMapper, RoleMapper roleMapper, JedisUtil jedisUtil) {
         this.permissionMapper = permissionMapper;
         this.roleMapper = roleMapper;
+        this.jedisUtil = jedisUtil;
     }
 
     @Override
@@ -93,9 +89,9 @@ public class UserRealm extends AuthorizingRealm {
         }
         log.debug("==> UserRealm doGetAuthenticationInfo, JWT decode Account : {},Timestamp :{}", account, JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS));
         // 开始认证，要AccessToken认证通过，且Redis中存在RefreshToken，且两个Token时间戳一致
-        if (JWTUtil.verify(token) && JedisUtil.exists(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account)) {
+        if (JWTUtil.verify(token) && jedisUtil.exists(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account)) {
             // 获取RefreshToken的时间戳
-            String redisTimestamp = JedisUtil.get(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account);
+            String redisTimestamp = jedisUtil.get(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account);
             String jwtTimestamp = JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS);
             // 双重认证： Jwt时间戳  与  Redis refresh_token时间戳对比
             log.debug("==> Timestamp equals Jwt: {} | redis :{}", jwtTimestamp, redisTimestamp);

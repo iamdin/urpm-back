@@ -11,6 +11,7 @@ import com.example.urpm.util.JedisUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.web.filter.authc.BasicHttpAuthenticationFilter;
 import org.apache.shiro.web.util.WebUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -29,6 +30,8 @@ import java.io.PrintWriter;
 @Slf4j
 public class JWTFilter extends BasicHttpAuthenticationFilter {
 
+    @Autowired
+    private JedisUtil jedisUtil;
 
     /**
      * 这里我们详细说明下为什么最终返回的都是true，即允许访问
@@ -133,12 +136,12 @@ public class JWTFilter extends BasicHttpAuthenticationFilter {
         String account = JWTUtil.getClaim(token, Constant.ACCOUNT);
         String timestamp = JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS);
         log.debug("==> refreshToken Account: {}, Timestamp :{}", account, timestamp);
-        log.debug("Timestamp equals jwt : {}, redis : {}", JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS), JedisUtil.get(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account));
+        log.debug("Timestamp equals jwt : {}, redis : {}", JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS), jedisUtil.get(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account));
         // 判断Redis中RefreshToken是否存在
-        if (!JedisUtil.exists(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account)) {
+        if (!jedisUtil.exists(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account)) {
             return false;
         }// Redis中RefreshToken还存在，获取RefreshToken的时间戳
-        String redisTimestamp = JedisUtil.get(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account);
+        String redisTimestamp = jedisUtil.get(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account);
         String jwtTimestamp = JWTUtil.getClaim(token, Constant.CURRENT_TIME_MILLIS);
         // 获取当前AccessToken中的时间戳，与RefreshToken的时间戳对比，如果当前时间戳一致，进行AccessToken刷新
         log.debug("Timestamp equals jwt : {}, redis : {}", jwtTimestamp, redisTimestamp);
@@ -153,7 +156,7 @@ public class JWTFilter extends BasicHttpAuthenticationFilter {
         // 刷新AccessToken，设置时间戳为当前最新时间戳,将新刷新的AccessToken再次进行Shiro的登录
         JWTToken jwtToken = new JWTToken(refreshed_token);
         // 设置RefreshToken中的时间戳为当前最新时间戳，且刷新过期时间重新为30分钟过期(配置文件可配置refreshTokenExpireTime属性)
-        JedisUtil.set(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account, currentTimeMillis, refreshTokenExpireTime);
+        jedisUtil.set(Constant.PREFIX_SHIRO_REFRESH_TOKEN + account, currentTimeMillis, refreshTokenExpireTime);
         // 提交给UserRealm进行认证，如果错误他会抛出异常并被捕获，如果没有抛出异常则代表登入成功，返回true
         log.debug("refreshToken over , --> userRealm again  ");
         this.getSubject(request, response).login(jwtToken);

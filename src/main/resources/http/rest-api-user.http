@@ -4,8 +4,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "account": "root",
-  "password": "root"
+  "account": "user",
+  "password": "user"
 }
 > {%
  token = response.body.data.token;

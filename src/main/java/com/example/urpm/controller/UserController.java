@@ -46,11 +46,13 @@ public class UserController {
     private final UserService userService;
     private final RoleService roleService;
     private final PermissionService permissionService;
+    private final JedisUtil jedisUtil;
 
-    public UserController(UserService userService, RoleService roleService, PermissionService permissionService) {
+    public UserController(UserService userService, RoleService roleService, PermissionService permissionService, JedisUtil jedisUtil) {
         this.userService = userService;
         this.roleService = roleService;
         this.permissionService = permissionService;
+        this.jedisUtil = jedisUtil;
     }
 
     @PostMapping("/login")
@@ -69,13 +71,13 @@ public class UserController {
         }
 
         // 清除可能存在的Shiro权限信息缓存
-        if (JedisUtil.exists(Constant.PREFIX_SHIRO_CACHE + userDto.getAccount())) {
-            JedisUtil.delKey(Constant.PREFIX_SHIRO_CACHE + userDto.getAccount());
+        if (jedisUtil.exists(Constant.PREFIX_SHIRO_CACHE + userDto.getAccount())) {
+            jedisUtil.delKey(Constant.PREFIX_SHIRO_CACHE + userDto.getAccount());
         }
 
         // 设置RefreshToken，时间戳为当前时间戳，直接设置即可(不用先删后设，会覆盖已有的RefreshToken)
         String currentTimeMillis = String.valueOf(System.currentTimeMillis());
-        JedisUtil.set(Constant.PREFIX_SHIRO_REFRESH_TOKEN + userDto.getAccount(), currentTimeMillis, ConfigProperties.refreshTokenExpireTime);
+        jedisUtil.set(Constant.PREFIX_SHIRO_REFRESH_TOKEN + userDto.getAccount(), currentTimeMillis, ConfigProperties.refreshTokenExpireTime);
 
         // 根据账号生成Token
         String token = JWTUtil.sign(userDto.getAccount(), currentTimeMillis);

@@ -2,7 +2,6 @@ package com.example.urpm.util;
 
 import com.example.urpm.common.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -18,18 +17,17 @@ import java.util.Objects;
 @Component
 public class JedisUtil {
 
-    private static JedisPool jedisPool;
+    private final JedisPool jedisPool;
 
-    @Autowired
-    public void setJedisPool(JedisPool jedisPool) {
-        JedisUtil.jedisPool = jedisPool;
+    public JedisUtil(JedisPool jedisPool) {
+        this.jedisPool = jedisPool;
     }
 
     /**
      * 获取Jedis实例
      * @return
      */
-    public static synchronized Jedis getJedis() {
+    public synchronized Jedis getJedis() {
         try {
             if (jedisPool != null) {
                 return jedisPool.getResource();
@@ -45,7 +43,7 @@ public class JedisUtil {
      * jedis放回连接池
      * @param jedis
      */
-    public static void close(Jedis jedis) {
+    public void close(Jedis jedis) {
         try {
             if (jedis != null) {
                 jedis.close();
@@ -62,7 +60,7 @@ public class JedisUtil {
      * @param key
      * @return String
      */
-    public static String get(String key) {
+    public String get(String key) {
         Jedis jedis = null;
         try {
             jedis = getJedis();
@@ -76,7 +74,7 @@ public class JedisUtil {
     }
 
 
-    public static void set(String key, String value, int expiretime) {
+    public void set(String key, String value, int expiretime) {
         Jedis jedis = null;
         try {
             jedis = getJedis();
@@ -99,7 +97,7 @@ public class JedisUtil {
      * 删除 key
      * @param key
      */
-    public static void delKey(String key) {
+    public void delKey(String key) {
         Jedis jedis = null;
         try {
             jedis = getJedis();
@@ -117,7 +115,7 @@ public class JedisUtil {
      * @param key
      * @return
      */
-    public static Boolean exists(String key) {
+    public Boolean exists(String key) {
         Jedis jedis = null;
         try {
             jedis = getJedis();
