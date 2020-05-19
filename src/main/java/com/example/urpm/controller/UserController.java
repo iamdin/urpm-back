@@ -2,6 +2,7 @@ package com.example.urpm.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.example.urpm.common.base.R;
 import com.example.urpm.common.base.RestResult;
 import com.example.urpm.common.enums.RestResultEnum;
 import com.example.urpm.config.ConfigProperties;
@@ -57,17 +58,17 @@ public class UserController {
 
     @PostMapping("/login")
     @ApiOperation(value = "用户登录", notes = "输入用户密码")
-    public RestResult<Object> login(@RequestBody @Validated({UserLoginValidGroup.class})
-                                            UserDto userDto) {
-        UserDto user = new UserDto();
+    public R login(@RequestBody @Validated({UserLoginValidGroup.class})
+                           UserDto userDto) {
+        UserDto user;
         user = userService.selectUserByAccount(userDto.getAccount());
         if (user == null) {
-            return new RestResult<>(RestResultEnum.FAIL, "账号不存在！");
+            return R.failed().msg("账号不存在！");
         }
         // 密码进行AES解密
         String key = AesCipherUtil.deCrypto(user.getPassword());
         if (!Objects.equals(key, userDto.getAccount() + userDto.getPassword())) {
-            return new RestResult<>(RestResultEnum.FAIL, "密码错误！");
+            return R.failed().msg("密码错误！");
         }
 
         // 清除可能存在的Shiro权限信息缓存
@@ -83,32 +84,32 @@ public class UserController {
         String token = JWTUtil.sign(userDto.getAccount(), currentTimeMillis);
         Map<String, String> res = new HashMap<>();
         res.put("token", token);
-        return new RestResult<>(RestResultEnum.SUCCESS, "登录成功！", res);
+        return R.success().msg("登录成功！").data(res);
     }
 
     @GetMapping("{id}")
     @RequiresPermissions(logical = Logical.AND, value = {"user:select"})
-    public RestResult<UserDto> getUserById(@PathVariable Integer id) {
+    public R getUserById(@PathVariable Integer id) {
         UserDto userDto = new UserDto();
         userDto.setId(id);
         userDto = userService.selectOne(userDto);
-        return new RestResult<>(RestResultEnum.SUCCESS, userDto);
+        return R.success().data(userDto);
     }
 
     @GetMapping("/all")
-    @RequiresPermissions(logical = Logical.AND, value = {"user:select"})
-    public RestResult<PageInfo<UserDto>> getAllUser(
+//    @RequiresPermissions(logical = Logical.AND, value = {"user:select"})
+    public R getAllUser(
             @RequestParam @NotBlank(message = "pageNum不能为空") int pageNum,
             @RequestParam @NotBlank(message = "pageSize不能为空") int pageSize) {
         PageHelper.startPage(pageNum, pageSize);
         List<UserDto> list = userService.selectAll();
         PageInfo<UserDto> pageInfo = new PageInfo<>(list);
-        return new RestResult<>(RestResultEnum.SUCCESS, pageInfo);
+        return R.success().data(pageInfo);
     }
 
     @GetMapping("/info")
     @RequiresAuthentication
-    public RestResult<Map<String, Object>> getUserInfo(@RequestHeader HttpHeaders headers) {
+    public R getUserInfo(@RequestHeader HttpHeaders headers) {
         String account = JWTUtil.getClaim(String.valueOf(headers.get("Authorization")), Constant.ACCOUNT);
         //用户信息
         JSON.DEFFAULT_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -122,43 +123,41 @@ public class UserController {
         // 获取用户权限
         Set<String> permissions = permissionService.selectPermissionsByUser(account);
         map.put("permissions", permissions);
-        return new RestResult<>(RestResultEnum.SUCCESS, map);
+        return R.success().data(map);
     }
 
     @PostMapping
     @RequiresPermissions(logical = Logical.AND, value = {"user:insert"})
-    public RestResult<Integer> insertUser(@RequestBody @Validated({UserLoginValidGroup.class, UserEditValidGroup.class}) UserDto userDto) {
+    public R insertUser(@RequestBody @Validated({UserLoginValidGroup.class, UserEditValidGroup.class}) UserDto userDto) {
         userDto.setRegTime(new Date());
         int res;
         try {
             res = userService.insert(userDto);
         } catch (DuplicateKeyException e) {
-            return new RestResult<>(RestResultEnum.FAIL, "账号已存在！");
+            return R.failed().msg("账号已存在！");
         }
-        return new RestResult<>(RestResultEnum.SUCCESS, res);
+        return R.success().data(res);
     }
 
     @PutMapping
     @RequiresPermissions(logical = Logical.AND, value = {"user:update"})
-    public RestResult<Integer> updateUser(@RequestBody UserDto userDto) {
+    public R updateUser(@RequestBody UserDto userDto) {
         if (userDto.getId() == null) {
-            return new RestResult<>(RestResultEnum.FAIL, "用户Id不能为空！");
+            return R.failed().msg("用户Id不能为空！");
         }
         int res = userService.updateByPrimaryKeySelective(userDto);
-        return new RestResult<>(
-                res == 1 ? RestResultEnum.SUCCESS : RestResultEnum.FAIL
-                , res);
+        return res == 1 ? R.success().data(res) : R.failed();
     }
 
     @DeleteMapping("{id}")
     @RequiresPermissions(logical = Logical.AND, value = {"user:delete"})
     @ApiImplicitParam(name = "id", value = "用户id", required = true, dataType = "Integer", paramType = "path")
-    public RestResult<Integer> deleteUser(@PathVariable Integer id) {
+    public R deleteUser(@PathVariable Integer id) {
         int res = userService.deleteByPrimaryKey(id);
         if (res == 0) {
-            return new RestResult<>(RestResultEnum.FAIL, "账号不存在！");
+            return R.failed().msg("账号不存在！");
         }
-        return new RestResult<>(RestResultEnum.SUCCESS, res);
+        return R.success().data(res);
     }
 
 

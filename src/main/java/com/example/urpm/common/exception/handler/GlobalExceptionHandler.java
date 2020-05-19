@@ -1,18 +1,12 @@
 package com.example.urpm.common.exception.handler;
 
-import com.example.urpm.common.base.RestResult;
-import com.example.urpm.common.enums.RestResultEnum;
+import com.example.urpm.common.base.R;
+import com.example.urpm.common.enums.RCodeEnum;
 import com.example.urpm.common.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import javax.validation.constraints.Null;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
  * @author dingjinyang
@@ -20,7 +14,7 @@ import javax.validation.constraints.Null;
  * @description 全局异常处理
  */
 @Slf4j
-@RestControllerAdvice
+@ControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
@@ -28,10 +22,10 @@ public class GlobalExceptionHandler {
      * @param e
      * @return
      */
-    @ExceptionHandler(value = BusinessException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public RestResult<Null> handleBusinessException(BusinessException e) {
-        return new RestResult<>(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(), null);
+    @ExceptionHandler(value = Exception.class)
+    @ResponseBody
+    public R handleGlobalException(BusinessException e) {
+        return R.setR(RCodeEnum.SERVER_ERROR).data(e.getMessage());
     }
 
 }
